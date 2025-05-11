@@ -29,6 +29,7 @@ const FileSystem: React.FC = () => {
           fileSystem={fileSystem} 
           onNodeSelect={handleNodeSelect}
           selectedNodeId={selectedNodeId}
+          onFileSystemChange={handleFileSystemChange}
         />
       </div>
       

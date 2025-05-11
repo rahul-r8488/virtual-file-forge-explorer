@@ -19,7 +19,7 @@ const Index = () => {
           Available commands: ls, cd, pwd, mkdir, touch, cat, rm, clear, help
         </p>
         <p className="mt-2">
-          Try creating files and directories to see the block allocation in action!
+          Drag and drop files/folders to move them between directories
         </p>
       </footer>
     </div>

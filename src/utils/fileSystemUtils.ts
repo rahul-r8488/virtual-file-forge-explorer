@@ -1,4 +1,3 @@
-
 import { v4 as uuidv4 } from 'uuid';
 import { 
   FileSystem, 
@@ -57,6 +56,84 @@ export const initializeFileSystem = (blockSize: number = 1024, totalBlocks: numb
     blockSize,
     totalBlocks,
     allocationStrategy: 'contiguous'
+  };
+};
+
+// Move a node from one directory to another
+export const moveNode = (fs: FileSystem, nodeId: string, newParentId: string): FileSystem => {
+  const node = fs.nodes[nodeId];
+  const newParent = fs.nodes[newParentId];
+  
+  // Check if nodes exist
+  if (!node) {
+    throw new Error('Source node not found');
+  }
+  
+  if (!newParent || !newParent.isDirectory) {
+    throw new Error('Target is not a valid directory');
+  }
+  
+  // Check permissions
+  if (!hasPermission(fs, node.parentId!, 'write') || !hasPermission(fs, newParentId, 'write')) {
+    throw new Error('Permission denied');
+  }
+  
+  // Check if target directory is not a child of the source (if source is a directory)
+  if (node.isDirectory) {
+    let current = newParent;
+    while (current.parentId !== null) {
+      if (current.id === node.id) {
+        throw new Error('Cannot move a directory into its own subdirectory');
+      }
+      current = fs.nodes[current.parentId];
+    }
+  }
+  
+  // Check if a node with the same name exists in the destination
+  const exists = (newParent as DirectoryNode).children.some(childId => {
+    const child = fs.nodes[childId];
+    return child && child.name === node.name;
+  });
+  
+  if (exists) {
+    throw new Error(`A file or directory named "${node.name}" already exists in the destination`);
+  }
+  
+  // Remove from old parent
+  const oldParent = fs.nodes[node.parentId!] as DirectoryNode;
+  const updatedOldParent: DirectoryNode = {
+    ...oldParent,
+    children: oldParent.children.filter(id => id !== nodeId),
+    metadata: {
+      ...oldParent.metadata,
+      modifiedAt: new Date()
+    }
+  };
+  
+  // Add to new parent
+  const updatedNewParent: DirectoryNode = {
+    ...newParent as DirectoryNode,
+    children: [...(newParent as DirectoryNode).children, nodeId],
+    metadata: {
+      ...newParent.metadata,
+      modifiedAt: new Date()
+    }
+  };
+  
+  // Update node
+  const updatedNode = {
+    ...node,
+    parentId: newParentId
+  };
+  
+  return {
+    ...fs,
+    nodes: {
+      ...fs.nodes,
+      [nodeId]: updatedNode,
+      [node.parentId!]: updatedOldParent,
+      [newParentId]: updatedNewParent
+    }
   };
 };
 
